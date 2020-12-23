@@ -97,3 +97,7 @@ $RECYCLE.BIN/
 
 # VS Code
 .vscode/
+
+# Unity Packages
+Assets/Photon/
+Assets/TextMesh Pro/

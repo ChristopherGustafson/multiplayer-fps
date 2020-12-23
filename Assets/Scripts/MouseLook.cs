@@ -12,6 +12,7 @@ public class MouseLook : MonoBehaviour
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void Update()
@@ -32,12 +33,14 @@ public class MouseLook : MonoBehaviour
     {
         if(cursorLocked){
             Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
             if(Input.GetKeyDown(KeyCode.Escape)){
                 cursorLocked = false;
             }
         }
         else{
             Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
             if(Input.GetKeyDown(KeyCode.Escape)){
                 cursorLocked = true;
             }

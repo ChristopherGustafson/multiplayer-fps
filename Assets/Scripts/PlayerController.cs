@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Photon.Pun;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
     public float speed;
     public float sprintSpeedModifier;
@@ -11,7 +12,6 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask groundMask;
     public Transform groundCheck;
 
-    private Rigidbody rig;
     private float BaseFOV;
     public float sprintFOVModifier = 1.25f;
 
@@ -20,15 +20,30 @@ public class PlayerMovement : MonoBehaviour
     private bool isJumping;
     private bool isGrounded;
 
-    void Start()
+    private Rigidbody rig;
+    PhotonView PV;
+
+    void Awake()
     {
-        Camera.main.enabled = false;
         rig = GetComponent<Rigidbody>();
+        PV = GetComponent<PhotonView>();
+
         BaseFOV = playerCam.fieldOfView;
     }
 
+    private void Start()
+    {
+        if (!PV.IsMine)
+        {
+            Destroy(GetComponentInChildren<Camera>().gameObject);
+        }
+    }
+
+
     void Update()
     {
+        if (!PV.IsMine)
+            return;
         isGrounded = Physics.Raycast(groundCheck.position, Vector3.down, 0.4f, groundMask);
         bool jump = Input.GetKeyDown(KeyCode.Space);
         isJumping = jump && isGrounded;
@@ -40,6 +55,8 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (!PV.IsMine)
+            return;
         // Fetch input
         float x = Input.GetAxisRaw("Horizontal");
         float z = Input.GetAxisRaw("Vertical");
@@ -74,4 +91,5 @@ public class PlayerMovement : MonoBehaviour
         targetVelocity.y = rig.velocity.y;
         rig.velocity = targetVelocity;
     }
+
 }
