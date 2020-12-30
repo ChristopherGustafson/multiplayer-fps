@@ -3,25 +3,48 @@ using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, Damageable
 {
-    public float speed;
-    public float sprintSpeedModifier;
-    public float jumpForce;
+    // Assignables
+    private Rigidbody rig;
+    PhotonView PV;
     public Camera playerCam;
     public LayerMask groundMask;
     public Transform groundCheck;
 
+    PlayerManager playerManager;
+
+    // Looking
+    [SerializeField] float mouseSensitivity;
+    [SerializeField] GameObject cameraHolder;
+    private float verticalLookRotation;
+    private static bool cursorLocked = true;
+
+    // Walking
+    public float speed;
+
+    // Sprinting
+    public float sprintSpeedModifier;
     private float BaseFOV;
     public float sprintFOVModifier = 1.25f;
 
+    // Jumping
+    public float jumpForce;
     public float fallMultiplier = 3.5f;
     public float lowJumpMultiplier = 3f;
+
+    // Input
+    private float x, z;
+    private bool jump, sprint;
+
+    // States 
     private bool isJumping;
     private bool isGrounded;
+    private bool isSprinting;
 
-    private Rigidbody rig;
-    PhotonView PV;
+    // Player Health
+    private const float maxHealth = 100;
+    private float health = maxHealth;
 
     void Awake()
     {
@@ -29,27 +52,38 @@ public class PlayerController : MonoBehaviour
         PV = GetComponent<PhotonView>();
 
         BaseFOV = playerCam.fieldOfView;
+
+        playerManager = PhotonView.Find((int)PV.InstantiationData[0]).GetComponent<PlayerManager>();
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     private void Start()
     {
-        if (!PV.IsMine)
-        {
+        // Remove camera and rigidbody if not ours
+        if (!PV.IsMine) { 
             Destroy(GetComponentInChildren<Camera>().gameObject);
+            Destroy(rig);
         }
-    }
 
+    }
 
     void Update()
     {
         if (!PV.IsMine)
             return;
-        isGrounded = Physics.Raycast(groundCheck.position, Vector3.down, 0.4f, groundMask);
-        bool jump = Input.GetKeyDown(KeyCode.Space);
-        isJumping = jump && isGrounded;
-        if (isJumping)
+
+
+        FetchInput();
+        CheckStates();
+        Look();
+        ToggleCursor();
+        Jump();
+
+        if(transform.position.y < -20f)
         {
-            rig.AddForce(Vector3.up * jumpForce);
+            playerManager.Die();
         }
     }
 
@@ -57,18 +91,64 @@ public class PlayerController : MonoBehaviour
     {
         if (!PV.IsMine)
             return;
-        // Fetch input
-        float x = Input.GetAxisRaw("Horizontal");
-        float z = Input.GetAxisRaw("Vertical");
 
-        bool sprint = Input.GetKey(KeyCode.LeftShift);
-        bool isSprinting = sprint && z > 0;
+        Movement();
+    }
 
+    private void FetchInput()
+    {
+        x = Input.GetAxisRaw("Horizontal");
+        z = Input.GetAxisRaw("Vertical");
+        sprint = Input.GetKey(KeyCode.LeftShift);
+        jump = Input.GetKeyDown(KeyCode.Space);
+    }
+
+    private void CheckStates()
+    {
+        isGrounded = Physics.Raycast(groundCheck.position, Vector3.down, 0.4f, groundMask);
+        isJumping = jump && isGrounded;
+        isSprinting = (sprint && z > 0 && isGrounded) || (isSprinting && !isGrounded);
+    }
+
+    private void Look()
+    {
+        transform.Rotate(Vector3.up * Input.GetAxisRaw("Mouse X") * mouseSensitivity);
+        verticalLookRotation += Input.GetAxisRaw("Mouse Y") * mouseSensitivity;
+        verticalLookRotation = Mathf.Clamp(verticalLookRotation, -90f, 90f);
+
+        cameraHolder.transform.localEulerAngles = Vector3.left * verticalLookRotation;
+    }
+
+    void ToggleCursor()
+    {
+        if (cursorLocked)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                cursorLocked = false;
+            }
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                cursorLocked = true;
+            }
+        }
+    }
+
+    private void Movement()
+    {
+        // Smoother jumping/Falling
         if (rig.velocity.y < 0)
         {
             rig.velocity += Vector3.up * Physics.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
         }
-        else if(rig.velocity.y > 0)
+        else if (rig.velocity.y > 0)
         {
             rig.velocity += Vector3.up * Physics.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
         }
@@ -77,11 +157,13 @@ public class PlayerController : MonoBehaviour
         Vector3 move = new Vector3(x, 0, z);
         move.Normalize();
 
+        // Adjust speed to if sprinting or not
         float adjustedSpeed = speed;
         if (isSprinting)
         {
             adjustedSpeed *= sprintSpeedModifier;
-            playerCam.fieldOfView = Mathf.Lerp(playerCam.fieldOfView, BaseFOV * sprintFOVModifier, Time.deltaTime*8f);        }
+            playerCam.fieldOfView = Mathf.Lerp(playerCam.fieldOfView, BaseFOV * sprintFOVModifier, Time.deltaTime * 8f);
+        }
         else
         {
             playerCam.fieldOfView = Mathf.Lerp(playerCam.fieldOfView, BaseFOV, Time.deltaTime * 8f);
@@ -92,4 +174,31 @@ public class PlayerController : MonoBehaviour
         rig.velocity = targetVelocity;
     }
 
+    private void Jump()
+    {
+        // Jumping
+        if (isJumping)
+        {
+            rig.AddForce(Vector3.up * jumpForce);
+        }
+    }
+
+    public void TakeDamage(float damage)
+    {
+        PV.RPC("RPC_TakeDamage", RpcTarget.All, damage);
+    }
+
+    [PunRPC]
+    void RPC_TakeDamage(float damage)
+    {
+        if (!PV.IsMine)
+            return;
+
+        health -= damage;
+
+        if(health <= 0)
+        {
+            playerManager.Die();
+        }
+    }
 }
