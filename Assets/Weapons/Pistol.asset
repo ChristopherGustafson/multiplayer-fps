@@ -16,3 +16,5 @@ MonoBehaviour:
   damage: 25
   range: 100
   fireRate: 10
+  maxAmmo: 30
+  currentAmmo: 30

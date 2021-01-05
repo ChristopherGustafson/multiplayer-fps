@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Rifle
   m_EditorClassIdentifier: 
   weaponName: Rifle
-  damage: 50
+  damage: 5
   range: 100
   fireRate: 10
+  maxAmmo: 30
+  currentAmmo: 30
+  reloadTime: 0
