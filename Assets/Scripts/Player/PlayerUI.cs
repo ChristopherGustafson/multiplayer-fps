@@ -12,9 +12,24 @@ public class PlayerUI : MonoBehaviour
     private Slider playerHealthSlider;
     [SerializeField]
     private GameObject damageIndicationPrefab;
-
     [SerializeField]
-    private Canvas UIParent;
+    private GameObject playerBody;
+    [SerializeField]
+    private GameObject scoreboard;
+
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            scoreboard.SetActive(true);
+        }
+        if (Input.GetKeyUp(KeyCode.Tab))
+        {
+            scoreboard.SetActive(false);
+        }
+    }
+
     public void SetUIAmmo(int ammo)
     {
         uiAmmo.text = ammo.ToString();
@@ -27,14 +42,18 @@ public class PlayerUI : MonoBehaviour
 
     public void SetDamageIndication(Vector3 from)
     {
-        Debug.Log(from);
-        Vector3 direction = transform.position - from;
-        Debug.Log(direction);
-        float angle = Vector3.Angle(transform.forward, direction);
-        
-        float sign = Mathf.Sign(Vector3.Dot(Vector3.down, Vector3.Cross(transform.forward, direction)));
+        Vector3 direction = playerBody.transform.position - from;
+        float angle = Vector3.Angle(playerBody.transform.forward, direction); 
+        float sign = Mathf.Sign(Vector3.Dot(Vector3.down, Vector3.Cross(playerBody.transform.forward, direction)));
         angle = angle * sign;
+        
         GameObject damageInd = Instantiate(damageIndicationPrefab, damageIndicationPrefab.transform.position, Quaternion.Euler(0f, 0f, angle));
-        damageInd.transform.SetParent(UIParent.transform, false);
+        damageInd.transform.SetParent(transform, false);
+        Destroy(damageInd, 0.9f);
+    }
+
+    public void UpdateScoreboard(PlayerInfo[] scores)
+    {
+
     }
 }

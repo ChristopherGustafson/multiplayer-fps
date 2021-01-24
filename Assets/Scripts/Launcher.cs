@@ -43,6 +43,9 @@ public class Launcher : MonoBehaviourPunCallbacks
         Debug.Log("Joined Lobby");
         MenuManager.Instance.OpenMenu("title");
         PhotonNetwork.NickName = "Player " + Random.Range(0, 100).ToString("000");
+        PhotonNetwork.LocalPlayer.CustomProperties["kills"] = 0;
+        PhotonNetwork.LocalPlayer.CustomProperties["deaths"] = 0;
+
     }
 
     public void CreateRoom()

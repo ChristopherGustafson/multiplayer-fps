@@ -3,7 +3,7 @@
 using System;
 using UnityEngine;
 
-public class PlayerMovement2 : MonoBehaviour {
+public class PlayerMovement : MonoBehaviour {
 
     //Assingables
     public Transform playerCam;
@@ -56,31 +56,18 @@ public class PlayerMovement2 : MonoBehaviour {
         Cursor.visible = false;
     }
 
-    
-    private void FixedUpdate() {
-        Movement();
-    }
-
-    private void Update() {
-        MyInput();
-        Look();
-    }
 
     /// <summary>
     /// Find user input. Should put this in its own class but im lazy
     /// </summary>
-    private void MyInput() {
+    public void GetInput() {
         x = Input.GetAxisRaw("Horizontal");
         y = Input.GetAxisRaw("Vertical");
         jumping = Input.GetButton("Jump");
-        crouching = Input.GetKey(KeyCode.LeftControl);
-      
-        
+        crouching = Input.GetKey(KeyCode.LeftControl);   
     }
 
-
-
-    private void Movement() {
+    public void Movement() {
         //Extra gravity
         rb.AddForce(Vector3.down * Time.deltaTime * 10);
         
@@ -116,6 +103,7 @@ public class PlayerMovement2 : MonoBehaviour {
         //Apply forces to move player
         rb.AddForce(orientation.transform.forward * y * moveSpeed * Time.deltaTime * multiplier * multiplierV);
         rb.AddForce(orientation.transform.right * x * moveSpeed * Time.deltaTime * multiplier);
+   
     }
 
     private void Jump() {
@@ -142,7 +130,7 @@ public class PlayerMovement2 : MonoBehaviour {
     }
     
     private float desiredX;
-    private void Look() {
+    public void Look() {
         float mouseX = Input.GetAxis("Mouse X") * sensitivity * Time.fixedDeltaTime * sensMultiplier;
         float mouseY = Input.GetAxis("Mouse Y") * sensitivity * Time.fixedDeltaTime * sensMultiplier;
 
@@ -157,6 +145,8 @@ public class PlayerMovement2 : MonoBehaviour {
         //Perform the rotations
         playerCam.transform.localRotation = Quaternion.Euler(xRotation, desiredX, 0);
         orientation.transform.localRotation = Quaternion.Euler(0, desiredX, 0);
+        //transform.localRotation = .transform.localRotation;
+
     }
 
     private void CounterMovement(float x, float y, Vector2 mag) {

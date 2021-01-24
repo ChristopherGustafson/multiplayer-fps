@@ -2,23 +2,29 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
 using System.IO;
 
 public class PlayerManager : MonoBehaviour
 {
-
     PhotonView PV;
     GameObject controller;
+    public PlayerInfo playerInfo;
+
     private void Awake()
     {
         PV = GetComponent<PhotonView>();
+        GameManager.Instance.AddPlayer(this);
     }
-    void Start()
+
+   void Start()
     {
         if (PV.IsMine)
         {
             CreateController();
         }
+
+        playerInfo = new PlayerInfo(0, 0, PV.Owner.NickName);
     }
 
     void CreateController()
@@ -30,6 +36,32 @@ public class PlayerManager : MonoBehaviour
     public void Die()
     {
         PhotonNetwork.Destroy(controller);
+
+        playerInfo.deaths++;
+        PV.RPC("RPC_UpdateDeathScore", RpcTarget.All, playerInfo.deaths);
+
         CreateController();
     }
+
+    public void Kill()
+    {
+        if (PV.IsMine)
+        {
+            playerInfo.kills++;
+            PV.RPC("RPC_UpdateKillScore", RpcTarget.All, playerInfo.kills);
+        }
+    }
+
+    [PunRPC]
+    public void RPC_UpdateKillScore(int kills)
+    {
+        playerInfo.kills = kills;
+    }
+
+    [PunRPC]
+    public void RPC_UpdateDeathScore(int deaths)
+    {
+        playerInfo.deaths = deaths;
+    }
+   
 }

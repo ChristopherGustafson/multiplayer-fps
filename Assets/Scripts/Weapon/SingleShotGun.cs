@@ -13,7 +13,9 @@ public class SingleShotGun : Weapon
         gunAnimator = GetComponentInChildren<Animator>();     
     }
 
-    public override void Shoot()
+    
+
+    public override void Shoot(PhotonView PV)
     {
         muzzleFlash.Play();
         gunAnimator.SetTrigger("Shoot");
@@ -22,7 +24,7 @@ public class SingleShotGun : Weapon
         if (Physics.Raycast(fpsCam.transform.position, fpsCam.transform.forward, out hit, weaponInfo.range))
         {
 
-            hit.collider.gameObject.GetComponent<Damageable>()?.TakeDamage(weaponInfo.damage, fpsCam.transform.position);
+            bool t = (bool)hit.collider.gameObject.GetComponent<Damageable>()?.TakeDamage(weaponInfo.damage, fpsCam.transform.position);
         }
     }
 
@@ -30,5 +32,10 @@ public class SingleShotGun : Weapon
     {
         yield return new WaitForSeconds(0.5f);
         weaponInfo.currentAmmo = weaponInfo.maxAmmo;
+    }
+
+    public override bool canShoot()
+    {
+        throw new System.NotImplementedException();
     }
 }

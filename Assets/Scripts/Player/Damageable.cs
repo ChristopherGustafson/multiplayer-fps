@@ -2,5 +2,5 @@
 
 public interface Damageable
 {
-    void TakeDamage(float damage, Vector3 from);
+    bool TakeDamage(float damage, Vector3 from);
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Photon.Pun;
+using System.Collections;
 using UnityEngine;
 
 public class SprayGun : Weapon
@@ -6,16 +7,26 @@ public class SprayGun : Weapon
     public Camera fpsCam;
     public ParticleSystem muzzleFlash;
     Animator gunAnimator;
-    AudioSource gunSound;
     private bool isReloading = false;
 
-
     [SerializeField] PlayerUI playerUI;
+
+    [SerializeField] AudioSource gunshotsAudio;
+    [SerializeField] GameObject hitmarker;
+    [SerializeField] AudioClip hitmarkerSound;
+
+    PhotonView PV;
+    PlayerManager playerManager;
 
     void Start()
     {
         gunAnimator = GetComponentInChildren<Animator>();
-        gunSound = GetComponentInChildren<AudioSource>();
+    }
+
+    private void Awake()
+    {
+        PV = GetComponent<PhotonView>();
+        playerManager = PhotonView.Find((int)PV.InstantiationData[0]).GetComponent<PlayerManager>();
     }
 
     void OnEnable()
@@ -25,27 +36,44 @@ public class SprayGun : Weapon
         isReloading = false;
         gunAnimator.SetBool("Reloading", false);
     }
-    
-    public override void Shoot()
+
+    public override bool canShoot()
     {
-        if (isReloading)
-            return;
-        if (weaponInfo.currentAmmo == 0)
-            // Play no ammo sound
-            return;
+        return (!isReloading && weaponInfo.currentAmmo != 0);
+    }
 
+    public override void Shoot(PhotonView PV)
+    {
+       
         muzzleFlash.Play();
-        gunAnimator.SetTrigger("Shoot");
-        gunSound.Play();
+        /*
+        gunshotsAudio.Stop();
+        gunshotsAudio.clip = weaponSound;
+        gunshotsAudio.Play();
+        */
+        if (PV.IsMine) {
+            gunAnimator.SetTrigger("Shoot");
+            RaycastHit hit;
+            if (Physics.Raycast(fpsCam.transform.position, fpsCam.transform.forward, out hit))
+            {
+                Damageable objectHit = hit.collider.transform.parent.gameObject.GetComponent<Damageable>();
+                if (objectHit != null)
+                {
+                    if (objectHit.TakeDamage(weaponInfo.damage, fpsCam.transform.position))
+                    {
+                        Debug.Log("Got Kill");
+                        playerManager.Kill();
+                    }
+                    GameObject hitm = Instantiate(hitmarker);
+                    hitm.transform.SetParent(playerUI.transform, false);
+                    Destroy(hitm, 1f);
+                    
+                }
 
-        RaycastHit hit;
-        if (Physics.Raycast(fpsCam.transform.position, fpsCam.transform.forward, out hit))
-        {
-            hit.collider.gameObject.GetComponent<Damageable>()?.TakeDamage(weaponInfo.damage, fpsCam.transform.position);
+                weaponInfo.currentAmmo--;
+                playerUI.SetUIAmmo(weaponInfo.currentAmmo);
+            }
         }
-
-        weaponInfo.currentAmmo--;
-        playerUI.SetUIAmmo(weaponInfo.currentAmmo);
     }
 
     public override IEnumerator Reload()

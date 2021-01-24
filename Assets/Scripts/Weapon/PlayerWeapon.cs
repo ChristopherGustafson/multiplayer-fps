@@ -1,8 +1,5 @@
 ﻿using Photon.Pun;
 using Photon.Realtime;
-using System.Collections;
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
@@ -28,7 +25,8 @@ public class PlayerWeapon : MonoBehaviourPunCallbacks
     {
         if (PV.IsMine)
         {
-            EquipWeapon(0);
+
+            PV.RPC("EquipWeapon", RpcTarget.All, 0);
             playerUI.SetUIAmmo(weapons[currentWeaponIndex].weaponInfo.currentAmmo);
             
         }
@@ -49,7 +47,7 @@ public class PlayerWeapon : MonoBehaviourPunCallbacks
         {
             if (Input.GetKeyDown((i + 1).ToString()))
             {
-                EquipWeapon(i);
+                PV.RPC("EquipWeapon", RpcTarget.All, i);
                 break;
             }
         }
@@ -59,13 +57,20 @@ public class PlayerWeapon : MonoBehaviourPunCallbacks
             if (Input.GetButton("Fire1") && Time.time >= nextTimeToFire)
             {
                 nextTimeToFire = Time.time + 1f / weapons[currentWeaponIndex].weaponInfo.fireRate;
-                weapons[currentWeaponIndex].Shoot();
+                if(weapons[currentWeaponIndex].canShoot()) PV.RPC("RPC_Shoot", RpcTarget.All);
             }
         }
   
     }
 
+    [PunRPC]
+    void RPC_Shoot()
+    {
+        if (currentWeaponIndex == -1) return;
+        weapons[currentWeaponIndex].Shoot(PV);
+    }
 
+    [PunRPC]
     void EquipWeapon(int _index)
     {
         if (_index == currentWeaponIndex)
@@ -79,21 +84,5 @@ public class PlayerWeapon : MonoBehaviourPunCallbacks
             weapons[previousWeaponIndex].weaponGameObject.SetActive(false);
         }
         previousWeaponIndex = currentWeaponIndex;
-
-        if (PV.IsMine)
-        {
-            Hashtable hash = new Hashtable();
-            hash.Add("weaponIndex", currentWeaponIndex);
-            PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-        }
     }
-
-    public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
-    {
-        if(!PV.IsMine && targetPlayer == PV.Owner)
-        {
-            EquipWeapon((int)changedProps["weaponIndex"]);
-        }
-    }
-
 }
